@@ -1,53 +1,31 @@
 %% filterfilename
-% 指定されたフォルダー内のファイルのうち，指定された形式のファイルのパスを返す
+% filter out file path in the specified directory based on the extension
 % 
-%  Input:  srcdir:   Source directory (as 'char' or 'cell string')
-%          fileext:  Extension
-%          mode:     Output mode ('full' or 'name')
-%  Output: namelist: Filtered name (as cell string)
-%  
-%  2013/02/05 - v. 1.0
-%  2013/04/04 - v. 1.1
+%  input:  srcdir:   source directory ("char", "string")
+%          fileext:  extension ("char", "string", "cell string")
+%  output: pathlist: full paths (as cell string)
 
 %% Function main
-function namelist = filterfilename(srcdir, fileext)
+function pathlist = filterfilename(srcdir, fileext)
 
-% Check input type & size
-assert(ischar(srcdir) || iscellstr(srcdir), ...
-	'Input ''srcdir'' must be char array or cell string');
+% check input
+assert(ischar(srcdir) || isstring(srcdir), ...
+	'''srcdir'' must be char array or string');
+assert(ischar(fileext) || isstring(fileext) || iscellstr(fileext), ...
+	'''fileext'' must be char array or string');
 
-% Convert to char
-if iscellstr(srcdir)
-	srcdir = char(srcdir);
-end
+% get all the file names in 'srcdir'
+list = dir(char(srcdir));
 
-% Check size
-if ~isrow(srcdir)
-	warning('Specify only 1 directory...');
-	namelist = [];
-	return;
-end
+% filter out file names with the specified extension
+pathlist = cell(numel(list), 1);	% file paths
+is_valid = false(numel(list), 1);	% true if extension is valid
 
-
-% Get all the file names in 'srcdir'
-list = dir(srcdir);
-
-% 有効な名前のみ抜き出し
-namelist = cell(numel(list), 1);	% Store file names
-namefilter = false(numel(list), 1);	% true if extension is valid
-
-% loop使いたくないが...
 for k = 1:numel(list)
-	% Full path 作成
-	namelist{k} = [srcdir filesep list(k).name];
-	
-	% 拡張子取り出し & 照合	
-	[~, ~, ext] = fileparts(namelist{k});
-	% '> 0'は'== 1' でもよい 
-	if sum(strcmp(ext, fileext)) > 0
-		namefilter(k) = true;
-	end
+    % make full path
+	pathlist{k} = fullfile(char(srcdir), list(k).name);	
+	[~, ~, ext] = fileparts(pathlist{k});
+	is_valid(k) = any(strcmp(ext, fileext));
 end
 
-namelist = namelist(namefilter);
-
+pathlist = pathlist(is_valid);
